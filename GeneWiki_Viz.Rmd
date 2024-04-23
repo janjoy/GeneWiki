@@ -1,0 +1,150 @@
+---
+title: "GeneWiki_Viz"
+author: "Janet Joy"
+---
+
+```{r include=FALSE}
+getwd()
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+data <- read.table(file = "results/gene_wiki_views.tsv", 
+                      sep = "\t", header=TRUE)
+data <- data %>% select(-X)
+#View(data)
+```
+
+```{r}
+data$title <- as.factor(data$title)
+#summary(as.factor(data$title))
+length(unique(data$title))
+class(data$title)
+```
+```{r}
+selected_data <- data[1:456,]
+ggplot(selected_data, aes(x=title, fill=title))+geom_bar()+theme_bw()
+```
+
+```{r}
+
+ggplot(selected_data, aes(x=title, y= views, col=title))+geom_boxplot()+theme_bw()+labs(title= "Title vs. Page Views", x= "Genes" , y="Page Views")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
+```
+
+```{r}
+ggplot(selected_data, aes(x=views, fill=title))+geom_histogram(bins=100)
+```
+
+```{r}
+ggplot(selected_data, aes(x=views, col=title))+geom_freqpoly(bins=60)+theme_bw()
+```
+
+```{r}
+library(data.table)
+genewikireview <-as.data.frame(fread("data/GeneWikiReviewlist.tsv"))
+head(genewikireview)
+
+```
+
+```{r}
+genewikireview_data <- genewikireview
+genewikireview_data$Batch_upd <- genewikireview_data$Batch
+#View(genewikireview_data)
+length(factor(genewikireview_data$GW_title))
+#unique(genewikireview_data$GW_title)
+```
+
+```{r}
+#changes to be made as per Ginger
+#The first column is the batch info-- the first 5 existed before I joined the project, so you can consider those batch 0
+#first 6 confirm?
+#Row 96 It's Dr. Peipei Ping, so it must be a cardiac gene-- batch 5
+#For row 108, it was officially part of Batch 9, but this guy is also in Peipei's lab so we can count it as batch 5
+genewikireview_data$Batch_upd[1:6] <- 0
+genewikireview_data$Batch_upd[96] <- 5
+genewikireview_data$Batch_upd[107] <- 5
+#intersect(data$title, genewikireview_data$GW_title)
+```
+
+```{r}
+genewikireview_data$Batch_updated <- stringr::str_replace(genewikireview_data$Batch_upd, '\\*', '')
+genewikireview_data$Batch_updated <- as.numeric(genewikireview_data$Batch_updated)
+View(genewikireview_data)
+ggplot(genewikireview_data, aes(x=Batch_updated, fill=Batch_updated))+geom_bar()
+```
+```{r}
+table(is.na(genewikireview_data$Batch_updated))
+```
+
+```{r}
+unique(genewikireview_data$Batch_updated)
+unique(genewikireview_data$Batch_upd)
+#aggregate Genes from the Cardiac Gene Wiki Series (batches 4,5) vs disease-agnostic (batch 1-3,6,8,9), vs rare disease series (batch 7, 10) vs alzheimer disease (batch 11)
+```
+
+```{r}
+library(dplyr)
+genewikireview_data %>%
+  mutate(Gene_Series = case_when(
+    Batch_updated <1 ~ "earlier",
+    #Batch_upd == c(4,5,4*,5*)  ~ "cardiac-gene",
+    #Batch_upd == c(1,1*,2,2*,3,3*,8,8*,9) ~ "disease-agnostic",
+    #Batch_upd == c(7,10) ~ "rare-disease",
+    #Batch_upd == 11 ~ "alzheimer-disease"
+    ))
+```
+
+```{r}
+colnames(genewikireview_data)[5] <- "title"
+```
+
+```{r}
+colnames(genewikireview_data)
+
+```
+
+```{r}
+#aggregate Genes from the Cardiac Gene Wiki Series (batches 4,5) vs disease-agnostic (batch 1-3,6,8,9), vs rare disease series (batch 7, 10) vs alzheimer disease (batch 11)
+# using Switch statement in R
+```
+
+```{r}
+temp <- genewikireview_data %>% dplyr::mutate(case_category = case_when(Batch_updated < 1 ~ "earlier",
+                                                             Batch_updated == 1 ~ "disease-agnostic",
+                                                             Batch_updated == 2 ~ "disease-agnostic",
+                                                             Batch_updated == 3 ~ "disease-agnostic",
+                                                             Batch_updated == 8 ~ "disease-agnostic",
+                                                             Batch_updated == 9 ~ "disease-agnostic",
+                                                             Batch_updated == 4 ~ "cardiac",
+                                                             Batch_updated == 5 ~ "cardiac",
+                                                             Batch_updated == 7 ~ "rare",
+                                                             Batch_updated == 10 ~ "rare",
+                                                             Batch_updated == 11 ~ "AD",
+                                                             TRUE ~ "Low",))
+View(temp)
+```
+
+```{r}
+temp2 <- (left_join(data, temp, by= "title"))
+```
+
+```{r}
+unique(temp2$Batch_updated)
+```
+
+```{r}
+library(dplyr)
+temp3 <- temp2[complete.cases(temp2$case_category),]
+#View(temp3)
+ggplot(temp3, aes(x=case_category, y= views, col=case_category))+geom_boxplot()+theme_bw()+labs(title= "Title vs. Page Views", x= "Genes" , y="Page Views")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
+```
+
+```{r}
+table(is.na(temp2$case_category))
+```
+
+```{r}
+ggplot(temp3, aes(x=case_category, fill=case_category))+geom_bar()+theme_bw()
+```
+

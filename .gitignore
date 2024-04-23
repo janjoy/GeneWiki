@@ -3,3 +3,8 @@
 apicache-py3/*
 pywikibot.lwp
 throttle.ctrl
+.Rproj.user
+.RData
+.Rhistory
+.gitignore
+.gitignore.swp
